@@ -61,14 +61,18 @@ float cdRotationSpeed = 0.0f; //self explanatory
 float cdDesiredRotationSpeed = 45.5f; //self explanatory
 AccelState accelState = ACCELERATING; //not to be confused with STARTING. This is the cd's state when in motion
 float cdAcceleration = cdDesiredRotationSpeed; //self explanatory
-float cdAccelerationSpeed = 0.2f; //self explanatory
+float cdAccelerationSpeed = 0.1f; //self explanatory
 float cdRotation = 0.0f; //self explanatory
-float cdOverlayRotation = 0.0f, cdOverlayRotationGoal = rand() % 720, cdOverlaySpeed = 3.0f; //cdOverlayRotationGoal tells cdOverlayRotation what angle to spin to. Best value that I found for cdOverlaySpeed is either a small one such as 3.0f or a high one such as 40.0f
+float cdOverlayRotation = 0.0f, cdOverlayRotationGoal = rand() % 720, cdOverlaySpeed = 10.0f; //cdOverlayRotationGoal tells cdOverlayRotation what angle to spin to. Best value that I found for cdOverlaySpeed is either a small one such as 3.0f or a high one such as 20.0f
 
 CdSpinState cdSpinState = SPIN_STOPPED; //self explanatory
 float transitionRotateSpeed = 0.001f; //Used in the stop -> start or start -> stop transition to smooth out the speed changes
 
-int lastMousePosX = 0, lastMousePosY = 0; //Used for window dragging part 1
+Vector2 lastMousePosition = { 0 }; //Used for window dragging part 1
+Vector2 dragOffset = { 0 };
+bool dragging = false;
+
+float refreshRateMultiplier = 1;
 
 int main(){
 
@@ -76,10 +80,18 @@ int main(){
     SetConfigFlags(FLAG_WINDOW_TOPMOST);
     InitWindow(windowWidth, windowHeight, "cdRayer");
     SetWindowPosition(1920 - windowWidth, 1080 - windowHeight - 100); //Places the window on the bottom left at startup
-    SetTargetFPS(144); //Change this to 60 if needed. Keep in mind, things *will* appear slower, since the app does less updates per second
+    SetTargetFPS(GetMonitorRefreshRate(GetCurrentMonitor())); //Change this to 60 if needed. Keep in mind, things *will* appear slower, since the app does less updates per second
+    refreshRateMultiplier = -0.01667 * GetMonitorRefreshRate(GetCurrentMonitor()) + 3.4; //Scuffed function that (should) returns 2.4 for 60 and 1 for 144, and everything inbetween. Fixes (or SHOULD fix) the slower speed on slower refresh rates
+    
     SetWindowState(FLAG_WINDOW_UNDECORATED);
 
         //Preparing the textures
+
+    //windowBg. Maybe it fixes the flashing?
+    char windowBgPath[] = "assets/windowBg.png";
+    Image windowBgImage = LoadImage(windowBgPath);
+    Texture2D windowBgTexture = LoadTextureFromImage(windowBgImage);
+    UnloadImage(windowBgImage);
 
     //cdOverlay
     char cdOverlayPath[] = "assets/cdOverlay1.png";
@@ -169,11 +181,11 @@ int main(){
             break;
 
         case SPIN_RUNNING:
-            //Uncomment line of code below for constant spinning cd
+                //Uncomment line of code below for constant spinning cd
             //cdRotation += cdRotationSpeed;
-            //Uncomment line of code above for constant spinning cd
+                //Uncomment line of code above for constant spinning cd
 
-            //Uncomment lines of code below for accelerating spinning cd
+                //Uncomment lines of code below for accelerating spinning cd
             if(accelState == ACCELERATING){
                 cdAcceleration += cdAccelerationSpeed;
                 if(cdAcceleration >= 720)
@@ -184,9 +196,9 @@ int main(){
                     accelState = ACCELERATING;
             }
             cdRotation += cdAcceleration;
-            //Uncomment lines of code above for accelerating spinning cd
+                //Uncomment lines of code above for accelerating spinning cd
 
-            //cdOverlayRotation logic. Chooses a random angle between 0 and 720. Moves to it with ease out
+                //cdOverlayRotation logic. Chooses a random angle between 0 and 720. Moves to it with ease out
             if(cdOverlayRotation > cdOverlayRotationGoal + 0.2)
                 cdOverlayRotation -=  std::max(cdOverlaySpeed * 0.001f * (cdOverlayRotation - cdOverlayRotationGoal), cdOverlaySpeed * 0.01f);
             else if(cdOverlayRotation < cdOverlayRotationGoal - 0.2)
@@ -220,23 +232,31 @@ int main(){
             }
 
         //since cdRotation is an angle between 0 and 360, there's no need for values above it
-        fmod(cdRotation, 360.0);
+        cdRotation = fmod(cdRotation, 360.0);
 
         //Used for window dragging part 2
-        int mousePosX = GetMouseX();
-        int mousePosY = GetMouseY();
-        int mouseDeltaX = mousePosX-lastMousePosX;
-        int mouseDeltaY = mousePosY-lastMousePosY;
+        Vector2 mousePos = GetMousePosition();
+        Vector2 currentWindowPos = GetWindowPosition();
 
-        if (IsMouseButtonDown(MOUSE_LEFT_BUTTON))
-        {
-            SetWindowPosition(GetWindowPosition().x + mouseDeltaX, GetWindowPosition().y + mouseDeltaY);
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+            dragging = true;
+            // Store offset between mouse and window's top-left corner
+            dragOffset.x = mousePos.x;
+            dragOffset.y = mousePos.y;
         }
-        else {
-            lastMousePosX = mousePosX;
-            lastMousePosY = mousePosY;
+
+        // When left mouse button is released, stop dragging
+        if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) {
+            dragging = false;
         }
-        
+
+        // Move window if dragging
+        if (dragging) {
+            Vector2 newMousePos = GetMousePosition();
+            SetWindowPosition(currentWindowPos.x + (newMousePos.x - dragOffset.x),
+                              currentWindowPos.y + (newMousePos.y - dragOffset.y));
+        }
+
         // Updating
 
         //Can you tell this code can be improved? :,3
@@ -246,6 +266,15 @@ int main(){
         BeginDrawing();
 
                 //If we first render texture A and then texture B, texture B will be on top of A. Using this, we achieve layers
+
+            //cdPlayerBottomShadow
+            DrawTexturePro(windowBgTexture,
+            (Rectangle){0, 0, windowBgTexture.width, windowBgTexture.height}, //SOURCE
+            (Rectangle){0, 0, windowWidth, windowHeight}, //DEST
+            (Vector2){0, 0}, //ORIGIN
+            0, //ROTATION
+            WHITE); //idk
+    
 
             //cdPlayerBottomShadow
             DrawTexturePro(cdPlayerBottomShadowTexture,
@@ -277,14 +306,14 @@ int main(){
                 (Rectangle){0, 0, cdClearTexture.width, cdClearTexture.height}, //SOURCE
                 (Rectangle){cdSize/2 + cdSize * 0.14f + 4, windowHeight/2, cdSize, cdSize}, //DEST
                 (Vector2){cdSize/2.0f, cdSize/2.0f}, //ORIGIN
-                cdRotation, //ROTATION
+                cdRotation * refreshRateMultiplier, //ROTATION
                 WHITE); //idk
             else
                 DrawTexturePro(cdBlurTexture,
                 (Rectangle){0, 0, cdBlurTexture.width, cdBlurTexture.height}, //SOURCE
                 (Rectangle){cdSize/2 + cdSize * 0.14f + 4, windowHeight/2, cdSize, cdSize}, //DEST
                 (Vector2){cdSize/2.0f, cdSize/2.0f}, //ORIGIN
-                cdRotation, //ROTATION
+                cdRotation * refreshRateMultiplier, //ROTATION
                 WHITE); //idk
 
             //cdNipple
@@ -292,7 +321,7 @@ int main(){
             (Rectangle){0, 0, cdNippleTexture.width, cdNippleTexture.height}, //SOURCE
             (Rectangle){cdNippleSize/2 + cdSize * 0.49f + 4 - 155 * (cdNippleSize / cdSize) + 47.5f, windowHeight/2, cdNippleSize, cdNippleSize}, //DEST
             (Vector2){cdNippleSize/2.0f, cdNippleSize/2.0f}, //ORIGIN
-            cdRotation, //ROTATION
+            cdRotation * refreshRateMultiplier, //ROTATION
             WHITE); //idk
 
             BeginBlendMode(cdOverlayBlendMode);
@@ -301,7 +330,7 @@ int main(){
                     (Rectangle){0, 0, cdOverlayTexture.width, cdOverlayTexture.height}, //SOURCE
                     (Rectangle){cdSize/2 + cdSize * 0.14f + 4, windowHeight/2, cdSize, cdSize}, //DEST
                     (Vector2){cdSize/2.0f, cdSize/2.0f}, //ORIGIN
-                    cdOverlayRotation, //ROTATION
+                    cdOverlayRotation * refreshRateMultiplier, //ROTATION
                     WHITE); //idk
             EndBlendMode();
 
