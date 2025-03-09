@@ -19,6 +19,7 @@ gcc main.cpp -o main.exe -Wall -Wno-missing-braces -I include/ -L lib/ -lraylib 
  * CONTROLS
  * - SPACEBAR - Toggle on/off
  * - ESC - Close app
+ * - S - Swap between the current and last album cover. Used when the program has a hiccup and forgets to switch automatically.
  *
  * HOW TO ADD YOUR OWN COVER
  * - Step 0: Download cdRayer v.01 or v.011
