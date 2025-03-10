@@ -1278,6 +1278,10 @@
    'C:\\Users\\GF63 '
    '1\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python312\\site-packages\\numpy\\core\\_utils.py',
    'PYMODULE'),
+  ('numpy.core.multiarray',
+   'C:\\Users\\GF63 '
+   '1\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python312\\site-packages\\numpy\\core\\multiarray.py',
+   'PYMODULE'),
   ('numpy.ctypeslib',
    'C:\\Users\\GF63 '
    '1\\AppData\\Local\\Packages\\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\\LocalCache\\local-packages\\Python312\\site-packages\\numpy\\ctypeslib.py',

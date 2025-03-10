@@ -53,7 +53,7 @@ gcc main.cpp -o main.exe -Wall -Wno-missing-braces -I include/ -L lib/ -lraylib 
 
 namespace fs = std::filesystem;
 int songChangedFlag = 1, cdCoverPingPong = 10000, windowWait = 0;
-bool alreadyChanged = false;
+bool alreadyChanged = false, cdBlurLoaded = false;
 
 typedef enum
 {
@@ -63,7 +63,7 @@ typedef enum
 
 WindowState windowState = OPENING;
 float windowSpeed = 0.0f;
-float windowAcceleration = 0.02f;
+float windowAcceleration = 0.05f;
 
 typedef enum
 {
@@ -139,6 +139,13 @@ int main()
     Texture2D cdClearTexture;
     // UnloadImage(cdClearImage);
 
+    // cdBlur
+    char cdBlurPath[100] = "assets/cdCoverFast.png";
+    Image cdBlurImage;
+    // Texture2D cdBlurTexture = LoadTextureFromImage(cdBlurImage);
+    Texture2D cdBlurTexture;
+    // UnloadImage(cdBlurImage);
+
     // cdNipple
     char cdNipplePath[] = "assets/nipple.png";
     Image cdNipple = LoadImage(cdNipplePath);
@@ -199,6 +206,7 @@ int main()
         if (IsKeyPressed(KEY_S))
         {
             songChangedFlag = 1;
+            cdBlurLoaded = false;
             alreadyChanged = false;
         }
 
@@ -209,9 +217,9 @@ int main()
             case CLOSING:
                 windowSpeed += windowAcceleration;
                 if (GetWindowPosition().x < 1920 - windowWidth)
-                    SetWindowPosition(GetWindowPosition().x + windowSpeed * 2, GetWindowPosition().y);
+                    SetWindowPosition(GetWindowPosition().x + windowSpeed, GetWindowPosition().y);
                 else
-                    SetWindowPosition(GetWindowPosition().x + windowSpeed / 5, GetWindowPosition().y);
+                    SetWindowPosition(GetWindowPosition().x + windowSpeed / 6, GetWindowPosition().y);
                 printf("%.6f\n", GetWindowPosition().x);
                 if (GetWindowPosition().x > 1900)
                 {
@@ -236,6 +244,7 @@ int main()
                 {
                     if (alreadyChanged == false)
                     {
+                        cdBlurLoaded = false;
                         strcpy(cdClearPath, "assets/cdCover9999.png");
                         cdClearPath[strlen(cdClearPath)] = NULL;
                         cdClearImage = LoadImage(cdClearPath);
@@ -250,6 +259,7 @@ int main()
                 {
                     if (alreadyChanged == false)
                     {
+                        cdBlurLoaded = false;
                         strcpy(cdClearPath, "assets/cdCover10000.png");
                         cdClearPath[strlen(cdClearPath)] = NULL;
                         cdClearImage = LoadImage(cdClearPath);
@@ -501,27 +511,51 @@ int main()
                        WHITE);                                                                                         // idk
 
         // cd
-        DrawTexturePro(cdClearTexture,
-                       (Rectangle){0, 0, cdClearTexture.width, cdClearTexture.height},                 // SOURCE
-                       (Rectangle){cdSize / 2 + cdSize * 0.14f + 4, windowHeight / 2, cdSize, cdSize}, // DEST
-                       (Vector2){cdSize / 2.0f, cdSize / 2.0f},                                        // ORIGIN
-                       cdRotation * refreshRateMultiplier,                                             // ROTATION
-                       WHITE);                                                                         // idk
+        // DrawTexturePro(cdClearTexture,
+        //                (Rectangle){0, 0, cdClearTexture.width, cdClearTexture.height},                 // SOURCE
+        //                (Rectangle){cdSize / 2 + cdSize * 0.14f + 4, windowHeight / 2, cdSize, cdSize}, // DEST
+        //                (Vector2){cdSize / 2.0f, cdSize / 2.0f},                                        // ORIGIN
+        //                cdRotation * refreshRateMultiplier,                                             // ROTATION
+        //                WHITE);                                                                         // idk
 
-        // if(cdRotationSpeed < 30)
-        //     DrawTexturePro(cdClearTexture,
-        //     (Rectangle){0, 0, cdClearTexture.width, cdClearTexture.height}, //SOURCE
-        //     (Rectangle){cdSize/2 + cdSize * 0.14f + 4, windowHeight/2, cdSize, cdSize}, //DEST
-        //     (Vector2){cdSize/2.0f, cdSize/2.0f}, //ORIGIN
-        //     cdRotation * refreshRateMultiplier, //ROTATION
-        //     WHITE); //idk
-        // else
-        //     DrawTexturePro(cdBlurTexture,
-        //     (Rectangle){0, 0, cdBlurTexture.width, cdBlurTexture.height}, //SOURCE
-        //     (Rectangle){cdSize/2 + cdSize * 0.14f + 4, windowHeight/2, cdSize, cdSize}, //DEST
-        //     (Vector2){cdSize/2.0f, cdSize/2.0f}, //ORIGIN
-        //     cdRotation * refreshRateMultiplier, //ROTATION
-        //     WHITE); //idk
+        if(cdRotationSpeed < 30)
+            DrawTexturePro(cdClearTexture,
+            (Rectangle){0, 0, cdClearTexture.width, cdClearTexture.height}, //SOURCE
+            (Rectangle){cdSize/2 + cdSize * 0.14f + 4, windowHeight/2, cdSize, cdSize}, //DEST
+            (Vector2){cdSize/2.0f, cdSize/2.0f}, //ORIGIN
+            cdRotation * refreshRateMultiplier, //ROTATION
+            WHITE); //idk
+        else{
+            if(strstr(cdClearPath, "9999") && cdBlurLoaded == false)
+                {
+                        
+                        strcpy(cdBlurPath, "assets/cdCoverFast9999.png");
+                        cdBlurPath[strlen(cdBlurPath)] = NULL;
+                        cdBlurImage = LoadImage(cdBlurPath);
+                        UnloadTexture(cdBlurTexture);
+                        cdBlurTexture = LoadTextureFromImage(cdBlurImage);
+                        UnloadImage(cdBlurImage);
+                        cdBlurLoaded = true;
+                }
+                else if(strstr(cdClearPath, "1000") && cdBlurLoaded == false)
+                {
+
+                        strcpy(cdBlurPath, "assets/cdCoverFast10000.png");
+                        cdClearPath[strlen(cdBlurPath)] = NULL;
+                        cdBlurImage = LoadImage(cdBlurPath);
+                        UnloadTexture(cdBlurTexture);
+                        cdBlurTexture = LoadTextureFromImage(cdBlurImage);
+                        UnloadImage(cdBlurImage);
+                        cdBlurLoaded = true;
+                }
+            DrawTexturePro(cdBlurTexture,
+            (Rectangle){0, 0, cdBlurTexture.width, cdBlurTexture.height}, //SOURCE
+            (Rectangle){cdSize/2 + cdSize * 0.14f + 4, windowHeight/2, cdSize, cdSize}, //DEST
+            (Vector2){cdSize/2.0f, cdSize/2.0f}, //ORIGIN
+            cdRotation * refreshRateMultiplier, //ROTATION
+            WHITE); //idk
+        }
+        
 
         // cdNipple
         DrawTexturePro(cdNippleTexture,

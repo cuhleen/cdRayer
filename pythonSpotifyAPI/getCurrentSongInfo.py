@@ -7,6 +7,9 @@ from PIL import Image, ImageDraw
 import os
 import time
 
+import cv2
+import numpy as np
+
 # Spotify API Credentials
 clientID = ""
 clientSecret = ""
@@ -21,6 +24,43 @@ last_track_id = None
 
 songEndedNaturally = False
 cdCoverPingPong = 9999
+
+
+def spinning_radial_blur(image: np.ndarray, angle_step: int = 1, blur_intensity: int = 6) -> np.ndarray:
+    """
+    Applies a spinning radial blur to an image.
+
+    :param image: Input image (assumed to be 500x500 px, 3-channel BGR).
+    :param angle_step: Step size for rotation in degrees (smaller values give smoother blur).
+    :param blur_intensity: Number of iterations to blend (higher values increase blur effect).
+    :return: Blurred image.
+    """
+    h, w, _ = image.shape
+    center = (w // 2, h // 2)
+
+    # Initialize accumulator for blending
+    accumulated = np.zeros_like(image, dtype=np.float32)
+
+    for i in range(blur_intensity):
+        angle = (i - blur_intensity // 2) * angle_step
+
+        # Rotate the image
+        rotation_matrix = cv2.getRotationMatrix2D(center, angle, 1.0)
+        rotated = cv2.warpAffine(image, rotation_matrix, (w, h), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
+
+        # Accumulate rotated images
+        accumulated += rotated.astype(np.float32)
+
+    # Normalize to prevent overflow
+    blurred = (accumulated / blur_intensity).astype(np.uint8)
+    return blurred
+
+
+# Example usage:
+# image = cv2.imread("input.jpg")
+# blurred_image = spinning_radial_blur(image)
+# cv2.imwrite("blurred_output.jpg", blurred_image)
+
 
 def create_cd_effect(image_path, output_path, size=(500, 500), hole_diameter=61):
     # Open the image
@@ -87,17 +127,22 @@ while True:
             coverImage = Image.open("cdCoverSq.jpg")
             coverImage.save("cdCoverSq.png")
             os.remove("cdCoverSq.jpg")
+
+            image = cv2.imread("cdCoverSq.png", cv2.IMREAD_UNCHANGED)
+            blurred_image = spinning_radial_blur(image)
+            cv2.imwrite("cdCoverFastSq.png", blurred_image)
+
             if cdCoverPingPong == 9999:
                 create_cd_effect("cdCoverSq.png", "cdCover9999.png")
-                #create_cd_effect("cdCoverSq.png", "cdCoverFast9999.png")
+                create_cd_effect("cdCoverFastSq.png", "cdCoverFast9999.png")
                 os.replace("cdCover9999.png", "../assets/cdCover9999.png")
-                #os.replace("cdCoverFast9999.png", "../assets/cdCoverFast9999.png")
+                os.replace("cdCoverFast9999.png", "../assets/cdCoverFast9999.png")
                 cdCoverPingPong = 10000
             else:
                 create_cd_effect("cdCoverSq.png", "cdCover10000.png")
-                #create_cd_effect("cdCoverSq.png", "cdCoverFast10000.png")
+                create_cd_effect("cdCoverFastSq.png", "cdCoverFast10000.png")
                 os.replace("cdCover10000.png", "../assets/cdCover10000.png")
-                #os.replace("cdCoverFast10000.png", "../assets/cdCoverFast10000.png")
+                os.replace("cdCoverFast10000.png", "../assets/cdCoverFast10000.png")
                 cdCoverPingPong = 9999
 
             last_track_id = track_id  # Update last played track ID
